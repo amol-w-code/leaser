@@ -27,9 +27,8 @@ Visit http://localhost:3000 (redirects to `/dashboard`).
 
 ## Deploy to Vercel
 
-1. Push this folder to a GitHub repo.
-2. Go to https://vercel.com/new and import the repo.
-3. Leave settings at their defaults (Next.js is auto-detected) and click **Deploy**.
+1. Go to https://vercel.com/new and import the project.
+2. Leave settings at their defaults (Next.js is auto-detected) and click **Deploy**.
 
 No environment variables are required for this version.
 
