@@ -2,26 +2,55 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Budget, BudgetWithStats, Expense } from "./types";
-import { loadBudgets, saveBudgets, loadExpenses, saveExpenses } from "./storage";
+import { useAuth } from "./auth-context";
+import {
+  subscribeBudgets,
+  subscribeExpenses,
+  saveBudgetToFirestore,
+  deleteBudgetFromFirestore,
+  saveExpenseToFirestore,
+  deleteExpenseFromFirestore,
+  seedFirestoreData,
+} from "./firestore-storage";
 
 export function useFinanceData() {
+  const { user } = useAuth();
+  const uid = user?.uid;
+
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loaded, setLoaded] = useState(false);
 
+  // Subscribe to Firestore real-time data
   useEffect(() => {
-    setBudgets(loadBudgets());
-    setExpenses(loadExpenses());
-    setLoaded(true);
-  }, []);
+    if (!uid) {
+      setBudgets([]);
+      setExpenses([]);
+      setLoaded(false);
+      return;
+    }
 
-  useEffect(() => {
-    if (loaded) saveBudgets(budgets);
-  }, [budgets, loaded]);
+    let seeded = false;
 
-  useEffect(() => {
-    if (loaded) saveExpenses(expenses);
-  }, [expenses, loaded]);
+    const unsub1 = subscribeBudgets(uid, (b) => {
+      setBudgets(b);
+      // Seed demo data if first time (empty collection)
+      if (!seeded && b.length === 0) {
+        seeded = true;
+        seedFirestoreData(uid);
+      }
+      setLoaded(true);
+    });
+
+    const unsub2 = subscribeExpenses(uid, (e) => {
+      setExpenses(e);
+    });
+
+    return () => {
+      unsub1();
+      unsub2();
+    };
+  }, [uid]);
 
   const budgetsWithStats: BudgetWithStats[] = useMemo(() => {
     return budgets.map((b) => {
@@ -38,31 +67,39 @@ export function useFinanceData() {
   }, [budgets, expenses]);
 
   function addBudget(b: Omit<Budget, "id" | "createdAt">) {
-    setBudgets((prev) => [
-      ...prev,
-      { ...b, id: crypto.randomUUID(), createdAt: new Date().toISOString().slice(0, 10) },
-    ]);
+    if (!uid) return;
+    const newBudget: Budget = {
+      ...b,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
+    saveBudgetToFirestore(uid, newBudget);
   }
 
   function deleteBudget(id: string) {
-    setBudgets((prev) => prev.filter((b) => b.id !== id));
-    setExpenses((prev) => prev.filter((e) => e.budgetId !== id));
+    if (!uid) return;
+    deleteBudgetFromFirestore(uid, id);
   }
 
   function updateBudget(updated: Budget) {
-    setBudgets((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+    if (!uid) return;
+    saveBudgetToFirestore(uid, updated);
   }
 
   function addExpense(e: Omit<Expense, "id">) {
-    setExpenses((prev) => [...prev, { ...e, id: crypto.randomUUID() }]);
+    if (!uid) return;
+    const newExpense: Expense = { ...e, id: crypto.randomUUID() };
+    saveExpenseToFirestore(uid, newExpense);
   }
 
   function updateExpense(updated: Expense) {
-    setExpenses((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    if (!uid) return;
+    saveExpenseToFirestore(uid, updated);
   }
 
   function deleteExpense(id: string) {
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    if (!uid) return;
+    deleteExpenseFromFirestore(uid, id);
   }
 
   const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);

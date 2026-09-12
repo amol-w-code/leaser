@@ -12,6 +12,23 @@ export function formatCurrency(amount: number): string {
   return formatter.format(Math.round(amount));
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  INR: "₹",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  CAD: "C$",
+  AUD: "A$",
+  SGD: "S$",
+};
+
+export function getCurrencySymbol(): string {
+  const profile = loadProfile();
+  const currency = profile.currency || "USD";
+  return CURRENCY_SYMBOLS[currency] ?? "$";
+}
+
+
 export function formatDate(iso: string): string {
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
