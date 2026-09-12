@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
-import { loadProfile, saveProfile } from "@/lib/storage";
+import { useProfile } from "@/lib/use-profile";
 import { UserProfile } from "@/lib/types";
 
 const themeOptions = [
@@ -14,8 +14,18 @@ const countryOptions = ["India", "United States", "United Kingdom", "Canada", "A
 const currencyOptions = ["INR", "USD", "EUR", "GBP", "CAD", "AUD", "SGD"];
 
 export default function SettingsPage() {
-  const [profile, setProfile] = useState<UserProfile>(loadProfile());
-  const [message, setMessage] = useState("Profile saved locally in this browser.");
+  const { profile: remoteProfile, loaded, saveProfile: saveToFirestore } = useProfile();
+  
+  // Local state for editing
+  const [profile, setProfile] = useState<UserProfile>(remoteProfile);
+  const [message, setMessage] = useState("Profile synced to cloud.");
+
+  // Update local state when remote profile loads
+  useEffect(() => {
+    if (loaded) {
+      setProfile(remoteProfile);
+    }
+  }, [loaded, remoteProfile]);
 
   useEffect(() => {
     const storedTheme = profile.theme;
@@ -47,10 +57,9 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   }
 
-  function handleSave() {
-    saveProfile(profile);
-    window.dispatchEvent(new Event("profile-updated"));
-    setMessage("Settings updated successfully.");
+  async function handleSave() {
+    await saveToFirestore(profile);
+    setMessage("Settings updated and synced successfully.");
   }
 
   return (

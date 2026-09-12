@@ -1,4 +1,4 @@
-# Pocket — a budget & expense tracker
+# Leaser — a budget & expense tracker
 
 A budgets-and-expenses dashboard: sidebar navigation, stat cards, an activity
 bar chart, and budget cards with emoji icons and progress bars. Built with

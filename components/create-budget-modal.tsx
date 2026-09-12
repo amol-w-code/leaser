@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import dynamic from "next/dynamic";
 import { EmojiClickData, Theme } from "emoji-picker-react";
 import { Budget } from "@/lib/types";
+import { getCurrencySymbol } from "@/lib/utils";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 
@@ -73,7 +74,12 @@ export function CreateBudgetModal({ onCreate, onClose }: CreateBudgetModalProps)
             </button>
             {showPicker && (
               <div className="absolute z-10 mt-2">
-                <EmojiPicker onEmojiClick={handleEmojiClick} theme={Theme.LIGHT} width={320} height={360} />
+                <EmojiPicker
+                  onEmojiClick={handleEmojiClick}
+                  theme={typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "dark" ? Theme.DARK : Theme.LIGHT}
+                  width={320}
+                  height={360}
+                />
               </div>
             )}
           </div>
@@ -91,7 +97,7 @@ export function CreateBudgetModal({ onCreate, onClose }: CreateBudgetModalProps)
           <label className="block">
             <span className="text-sm font-medium text-ink">Budget Amount</span>
             <div className="mt-1.5 flex items-center rounded-xl border border-border bg-surface px-3.5 focus-within:border-brand focus-within:bg-white">
-              <span className="text-ink-faint mr-1">$</span>
+              <span className="text-ink-faint mr-1">{getCurrencySymbol()}</span>
               <input
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}

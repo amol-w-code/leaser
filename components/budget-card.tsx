@@ -13,10 +13,10 @@ export function BudgetCard({ budget, onEdit }: { budget: BudgetWithStats; onEdit
 
   return (
     <>
-      <div className="rise-in rounded-card border border-border bg-white p-5 shadow-card hover:border-brand/40 transition-colors">
+      <div className="rise-in hover-lift rounded-card border border-border bg-white p-5 shadow-card transition-all dark-card">
         <div className="flex items-start justify-between mb-5">
           <div className="flex items-center gap-3 flex-1">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-xl">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-xl transition-transform hover:scale-110">
               {budget.emoji}
             </span>
             <div>
@@ -28,27 +28,32 @@ export function BudgetCard({ budget, onEdit }: { budget: BudgetWithStats; onEdit
           </div>
           <button
             type="button"
-            onClick={() => setShowEdit(true)}
-            className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface"
+            onClick={(e) => { e.stopPropagation(); setShowEdit(true); }}
+            className="btn-press rounded-full border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface hover:border-brand/30 transition-all"
           >
             Edit
           </button>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-ink-soft mb-2">
-          <span>{formatCurrency(budget.spent)} Spend</span>
-          <span className={overBudget ? "text-negative font-medium" : ""}>
-            {overBudget
-              ? `${formatCurrency(Math.abs(budget.remaining))} Over`
-              : `${formatCurrency(budget.remaining)} Remaining`}
-          </span>
-        </div>
-        <div className="h-2 w-full rounded-pill bg-track overflow-hidden">
-          <div
-            className={`h-full rounded-pill ${overBudget ? "bg-negative" : "bg-brand"}`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+        <Link href={`/dashboard/expenses/${budget.id}`} className="block">
+          <div className="flex items-center justify-between text-xs text-ink-soft mb-2">
+            <span>{formatCurrency(budget.spent)} Spent</span>
+            <span className={overBudget ? "text-negative font-medium" : ""}>
+              {overBudget
+                ? `${formatCurrency(Math.abs(budget.remaining))} Over`
+                : `${formatCurrency(budget.remaining)} Remaining`}
+            </span>
+          </div>
+          <div className={`h-2.5 w-full rounded-pill bg-track overflow-hidden ${overBudget ? "pulse-glow" : ""}`}>
+            <div
+              className={`h-full rounded-pill progress-fill ${overBudget ? "bg-negative" : "bg-gradient-to-r from-brand to-purple-500"}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="mt-3 text-xs text-brand font-medium text-center hover:underline transition-colors">
+            View Expenses →
+          </p>
+        </Link>
       </div>
 
       {showEdit && (

@@ -6,76 +6,95 @@ import { StatCard } from "@/components/stat-card";
 import { ActivityChart } from "@/components/activity-chart";
 import { useFinanceData } from "@/lib/use-finance-data";
 import { formatCurrency } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
+import { useProfile } from "@/lib/use-profile";
 
 export default function DashboardPage() {
   const { loaded, budgetsWithStats, totalBudget, totalSpend } = useFinanceData();
+  const { user } = useAuth();
+  const { profile } = useProfile();
 
   if (!loaded) return null;
 
+  const displayName = user?.displayName || profile.fullName || "there";
   const latest = [...budgetsWithStats].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 2);
 
   return (
     <div>
       <TopBar
-        title="Hi, Game Play ✌️"
-        subtitle="Here's what happening with your money, Let's manage your expense"
+        title={`Hi, ${displayName} ✌️`}
+        subtitle="Here's what happening with your money. Let's manage your expenses."
       />
 
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
-        <StatCard label="Total Budget" value={totalBudget} icon={<PiggyIcon />} />
-        <StatCard label="Total Spend" value={totalSpend} icon={<ReceiptIcon />} />
-        <StatCard label="No. Of Budget" value={budgetsWithStats.length} isCurrency={false} icon={<WalletIcon />} />
+        <StatCard label="Total Budget" value={totalBudget} icon={<PiggyIcon />} delay={0} />
+        <StatCard label="Total Spend" value={totalSpend} icon={<ReceiptIcon />} delay={80} />
+        <StatCard label="No. of Budgets" value={budgetsWithStats.length} isCurrency={false} icon={<WalletIcon />} delay={160} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="rounded-card border border-border bg-white p-6 shadow-card">
+        <div className="fade-in-up rounded-card border border-border bg-white p-6 shadow-card dark-card" style={{ animationDelay: "200ms" }}>
           <h2 className="font-semibold text-ink mb-6">Activity</h2>
           <ActivityChart budgets={budgetsWithStats} />
         </div>
 
-        <div>
+        <div className="fade-in-up" style={{ animationDelay: "280ms" }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-ink">Latest Budgets</h2>
-            <Link href="/dashboard/budgets" className="text-xs text-brand font-medium">
-              View all
+            <Link href="/dashboard/budgets" className="text-xs text-brand font-medium hover:underline transition-colors">
+              View all →
             </Link>
           </div>
           <div className="space-y-4">
             {latest.length === 0 && (
-              <p className="text-sm text-ink-faint">Create your first budget to see it here.</p>
+              <div className="rounded-card border border-dashed border-border bg-white/50 p-8 text-center dark-card">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-surface text-2xl">
+                  📊
+                </div>
+                <p className="text-sm font-medium text-ink-soft">No budgets yet</p>
+                <p className="text-xs text-ink-faint mt-1">Create your first budget to see it here.</p>
+              </div>
             )}
-            {latest.map((b) => (
-              <Link
-                key={b.id}
-                href={`/dashboard/expenses/${b.id}`}
-                className="block rounded-card border border-border bg-white p-4 shadow-card hover:border-brand/40 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-lg">
-                      {b.emoji}
-                    </span>
-                    <div>
-                      <p className="font-medium text-ink text-sm">{b.name}</p>
-                      <p className="text-xs text-ink-faint">
-                        {b.itemCount} {b.itemCount === 1 ? "Item" : "Items"}
-                      </p>
+            {latest.map((b, i) => {
+              const overBudget = b.remaining < 0;
+              return (
+                <Link
+                  key={b.id}
+                  href={`/dashboard/expenses/${b.id}`}
+                  className="block rounded-card border border-border bg-white p-4 shadow-card hover-lift transition-all dark-card"
+                  style={{ animationDelay: `${320 + i * 80}ms` }}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-lg">
+                        {b.emoji}
+                      </span>
+                      <div>
+                        <p className="font-medium text-ink text-sm">{b.name}</p>
+                        <p className="text-xs text-ink-faint">
+                          {b.itemCount} {b.itemCount === 1 ? "Item" : "Items"}
+                        </p>
+                      </div>
                     </div>
+                    <p className="font-semibold text-brand text-sm">{formatCurrency(b.amount)}</p>
                   </div>
-                  <p className="font-semibold text-brand text-sm">{formatCurrency(b.amount)}</p>
-                </div>
-                <div className="flex items-center justify-between text-xs text-ink-soft mb-2">
-                  <span>{formatCurrency(b.spent)} Spend</span>
-                  <span>{formatCurrency(b.remaining)} Remaining</span>
-                </div>
-                <div className="h-2 w-full rounded-pill bg-track overflow-hidden">
-                  <div
-                    className="h-full rounded-pill bg-brand"
-                    style={{ width: `${Math.min(100, Math.round(b.percentUsed))}%` }}
-                  />
-                </div>
-              </Link>
-            ))}
+                  <div className="flex items-center justify-between text-xs text-ink-soft mb-2">
+                    <span>{formatCurrency(b.spent)} Spent</span>
+                    <span className={overBudget ? "text-negative font-medium" : ""}>
+                      {overBudget
+                        ? `${formatCurrency(Math.abs(b.remaining))} Over`
+                        : `${formatCurrency(b.remaining)} Remaining`}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-pill bg-track overflow-hidden">
+                    <div
+                      className={`h-full rounded-pill progress-fill ${overBudget ? "bg-negative" : "bg-brand"}`}
+                      style={{ width: `${Math.min(100, Math.round(b.percentUsed))}%` }}
+                    />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>

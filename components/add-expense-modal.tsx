@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { Budget, Expense } from "@/lib/types";
+import { getCurrencySymbol } from "@/lib/utils";
 
 interface AddExpenseModalProps {
   budgets: Budget[];
@@ -79,7 +80,7 @@ export function AddExpenseModal({
             <label className="block">
               <span className="text-sm font-medium text-ink">Amount</span>
               <div className="mt-1.5 flex items-center rounded-xl border border-border bg-surface px-3.5 focus-within:border-brand focus-within:bg-white">
-                <span className="text-ink-faint mr-1">$</span>
+                <span className="text-ink-faint mr-1">{getCurrencySymbol()}</span>
                 <input
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}

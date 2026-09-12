@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Transaction } from "@/lib/types";
-import { loadTransactions, saveTransactions } from "@/lib/storage";
-import { isSameMonth } from "@/lib/utils";
+import { useTransactions } from "@/lib/use-transactions";
 import { SummaryStrip } from "./summary-strip";
 import { TransactionTable } from "./transaction-table";
 import { AddEntrySlip } from "./add-entry-slip";
@@ -13,50 +12,23 @@ import { MonthPicker } from "./month-picker";
 type Tab = "ledger" | "overview";
 
 export function LedgerApp() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const {
+    loaded,
+    monthTransactions,
+    month,
+    setMonth,
+    income,
+    expenses,
+    balance,
+    categoryTotals,
+    addTransaction,
+    deleteTransaction,
+  } = useTransactions();
+
   const [tab, setTab] = useState<Tab>("ledger");
   const [showAdd, setShowAdd] = useState(false);
-  const [month, setMonth] = useState(() => new Date());
 
-  useEffect(() => {
-    setTransactions(loadTransactions());
-    setLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (loaded) saveTransactions(transactions);
-  }, [transactions, loaded]);
-
-  const monthTransactions = useMemo(
-    () => transactions.filter((t) => isSameMonth(t.date, month)),
-    [transactions, month]
-  );
-
-  const income = monthTransactions
-    .filter((t) => t.kind === "credit")
-    .reduce((s, t) => s + t.amount, 0);
-  const expenses = monthTransactions
-    .filter((t) => t.kind === "debit")
-    .reduce((s, t) => s + t.amount, 0);
-  const balance = income - expenses;
-
-  const categoryTotals = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const t of monthTransactions) {
-      if (t.kind !== "debit") continue;
-      map.set(t.category, (map.get(t.category) ?? 0) + t.amount);
-    }
-    return Array.from(map.entries()).map(([category, total]) => ({ category, total }));
-  }, [monthTransactions]);
-
-  function handleAdd(t: Omit<Transaction, "id">) {
-    setTransactions((prev) => [...prev, { ...t, id: crypto.randomUUID() }]);
-  }
-
-  function handleDelete(id: string) {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
-  }
+  if (!loaded) return null;
 
   return (
     <div className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">
@@ -71,8 +43,9 @@ export function LedgerApp() {
                 <span className="rounded-full border border-[#dad1c0] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-faint">
                   {month.toLocaleDateString("en", { month: "long", year: "numeric" })}
                 </span>
-                <span className="rounded-full bg-[#2f5d50]/10 px-3 py-1 text-[11px] font-medium text-[#2f5d50]">
-                  Local-only storage
+                <span className="flex items-center gap-1.5 rounded-full bg-[#2f5d50]/10 px-3 py-1 text-[11px] font-medium text-[#2f5d50]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-positive" />
+                  Cloud synced
                 </span>
               </div>
               <h1 className="font-display text-3xl sm:text-4xl text-ink">
@@ -129,7 +102,7 @@ export function LedgerApp() {
           <TransactionTable
             transactions={monthTransactions}
             startingBalance={0}
-            onDelete={handleDelete}
+            onDelete={deleteTransaction}
           />
         ) : (
           <div className="soft-card p-6 sm:p-8">
@@ -148,7 +121,7 @@ export function LedgerApp() {
         </footer>
       </div>
 
-      {showAdd && <AddEntrySlip onAdd={handleAdd} onClose={() => setShowAdd(false)} />}
+      {showAdd && <AddEntrySlip onAdd={addTransaction} onClose={() => setShowAdd(false)} />}
     </div>
   );
 }
