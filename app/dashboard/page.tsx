@@ -5,54 +5,72 @@ import { TopBar } from "@/components/topbar";
 import { StatCard } from "@/components/stat-card";
 import { ActivityChart } from "@/components/activity-chart";
 import { useFinanceData } from "@/lib/use-finance-data";
+import { useTransactions } from "@/lib/use-transactions";
 import { formatCurrency } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { useProfile } from "@/lib/use-profile";
+import { useAIInsights } from "@/lib/use-ai-insights";
 
 export default function DashboardPage() {
-  const { loaded, budgetsWithStats, totalBudget, totalSpend } = useFinanceData();
+  const { loaded, budgetsWithStats, expenses, totalBudget, totalSpend } = useFinanceData();
+  const { loaded: txLoaded, transactions, income, expenses: monthExp, balance, categoryTotals, month } = useTransactions();
   const { user } = useAuth();
   const { profile } = useProfile();
 
+  const insightsCtx = {
+    budgets: budgetsWithStats,
+    expenses,
+    transactions: transactions || [],
+    currency: profile.currency || "USD",
+    monthLabel: month?.toLocaleDateString("en", { month: "long", year: "numeric" }) || "",
+    totalBudget,
+    totalSpend,
+    monthIncome: income || 0,
+    monthExpenses: monthExp || 0,
+    monthBalance: balance || 0,
+    categoryTotals: categoryTotals || [],
+  };
+
+  const { insights, loading: insightsLoading, configured: aiConfigured } = useAIInsights(insightsCtx, loaded && txLoaded);
+
   if (!loaded) return null;
 
-  const displayName = user?.displayName || profile.fullName || "there";
+  const displayName = user?.displayName || profile.fullName || "User";
   const latest = [...budgetsWithStats].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 2);
 
   return (
     <div>
-      <TopBar
-        title={`Hi, ${displayName} ✌️`}
-        subtitle="Here's what happening with your money. Let's manage your expenses."
-      />
+      <TopBar title="Overview" />
 
+      {/* Stat Cards */}
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
-        <StatCard label="Total Budget" value={totalBudget} icon={<PiggyIcon />} delay={0} />
-        <StatCard label="Total Spend" value={totalSpend} icon={<ReceiptIcon />} delay={80} />
-        <StatCard label="No. of Budgets" value={budgetsWithStats.length} isCurrency={false} icon={<WalletIcon />} delay={160} />
+        <StatCard label="Total Budget" value={totalBudget} delay={50} />
+        <StatCard label="Total Spend" value={totalSpend} delay={100} />
+        <StatCard label="Budgets" value={budgetsWithStats.length} isCurrency={false} delay={150} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+        {/* Activity Chart */}
         <div className="fade-in-up rounded-card border border-border bg-white p-6 shadow-card dark-card" style={{ animationDelay: "200ms" }}>
-          <h2 className="font-semibold text-ink mb-6">Activity</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-medium text-ink">Activity</h2>
+          </div>
           <ActivityChart budgets={budgetsWithStats} />
         </div>
 
-        <div className="fade-in-up" style={{ animationDelay: "280ms" }}>
+        {/* Latest Budgets */}
+        <div className="fade-in-up" style={{ animationDelay: "250ms" }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-ink">Latest Budgets</h2>
-            <Link href="/dashboard/budgets" className="text-xs text-brand font-medium hover:underline transition-colors">
-              View all →
+            <h2 className="font-medium text-ink">Recent Budgets</h2>
+            <Link href="/dashboard/budgets" className="text-xs text-ink-soft hover:text-ink transition-colors">
+              View all
             </Link>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {latest.length === 0 && (
-              <div className="rounded-card border border-dashed border-border bg-white/50 p-8 text-center dark-card">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-surface text-2xl">
-                  📊
-                </div>
-                <p className="text-sm font-medium text-ink-soft">No budgets yet</p>
-                <p className="text-xs text-ink-faint mt-1">Create your first budget to see it here.</p>
+              <div className="rounded-card border border-border bg-white p-6 text-center dark-card shadow-card">
+                <p className="text-sm text-ink-soft">No budgets yet</p>
+                <p className="text-xs text-ink-faint mt-1">Create one to see it here.</p>
               </div>
             )}
             {latest.map((b, i) => {
@@ -61,34 +79,24 @@ export default function DashboardPage() {
                 <Link
                   key={b.id}
                   href={`/dashboard/expenses/${b.id}`}
-                  className="block rounded-card border border-border bg-white p-4 shadow-card hover-lift transition-all dark-card"
-                  style={{ animationDelay: `${320 + i * 80}ms` }}
+                  className="group block rounded-card border border-border bg-white p-4 shadow-card hover-lift dark-card"
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-lg">
-                        {b.emoji}
-                      </span>
-                      <div>
-                        <p className="font-medium text-ink text-sm">{b.name}</p>
-                        <p className="text-xs text-ink-faint">
-                          {b.itemCount} {b.itemCount === 1 ? "Item" : "Items"}
-                        </p>
-                      </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{b.emoji}</span>
+                      <p className="font-medium text-ink text-sm">{b.name}</p>
                     </div>
-                    <p className="font-semibold text-brand text-sm">{formatCurrency(b.amount)}</p>
+                    <p className="font-mono font-medium text-ink text-sm">{formatCurrency(b.amount)}</p>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-ink-soft mb-2">
-                    <span>{formatCurrency(b.spent)} Spent</span>
+                  <div className="flex items-center justify-between text-[11px] text-ink-soft mb-2">
+                    <span>{formatCurrency(b.spent)}</span>
                     <span className={overBudget ? "text-negative font-medium" : ""}>
-                      {overBudget
-                        ? `${formatCurrency(Math.abs(b.remaining))} Over`
-                        : `${formatCurrency(b.remaining)} Remaining`}
+                      {overBudget ? "Over budget" : `${formatCurrency(b.remaining)} left`}
                     </span>
                   </div>
-                  <div className="h-2 w-full rounded-pill bg-track overflow-hidden">
+                  <div className="h-1.5 w-full rounded-full bg-track overflow-hidden">
                     <div
-                      className={`h-full rounded-pill progress-fill ${overBudget ? "bg-negative" : "bg-brand"}`}
+                      className={`h-full rounded-full progress-fill ${overBudget ? "bg-negative" : "bg-ink"}`}
                       style={{ width: `${Math.min(100, Math.round(b.percentUsed))}%` }}
                     />
                   </div>
@@ -98,48 +106,60 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Insights Card */}
+      <div className="fade-in-up mt-6" style={{ animationDelay: "300ms" }}>
+        <div className="rounded-card border border-border bg-white p-6 shadow-card dark-card">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-medium text-ink flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+              </svg>
+              Insights
+            </h2>
+            <Link
+              href="/dashboard/ai-advisor"
+              className="text-xs text-ink-soft hover:text-ink transition-colors"
+            >
+              Ask AI
+            </Link>
+          </div>
+
+          {!aiConfigured ? (
+            <div className="rounded-lg border border-dashed border-border bg-surface p-6 text-center">
+              <p className="text-sm font-medium text-ink">AI not configured</p>
+              <p className="text-xs text-ink-faint mt-1">Add your Gemini API key in .env.local</p>
+            </div>
+          ) : insightsLoading ? (
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="rounded-lg border border-border bg-surface/50 p-4">
+                  <div className="shimmer h-3 w-16 bg-border rounded mb-2" />
+                  <div className="shimmer h-3 w-full bg-border rounded mb-1" />
+                  <div className="shimmer h-3 w-2/3 bg-border rounded" />
+                </div>
+              ))}
+            </div>
+          ) : insights.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-3">
+              {insights.map((insight, i) => (
+                <div
+                  key={insight.id}
+                  className="rounded-lg border border-border bg-surface p-4"
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-sm">{insight.icon}</span>
+                    <h3 className="text-xs font-semibold text-ink">{insight.title}</h3>
+                  </div>
+                  <p className="text-[13px] text-ink-soft leading-relaxed">{insight.description}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-ink-soft">No insights available yet. Check back when you have more data.</p>
+          )}
+        </div>
+      </div>
     </div>
-  );
-}
-
-function PiggyIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M4 12a5 5 0 015-5h3.5c2 0 3.5.8 4.5 2h1.5l1.5 2-1.5 1.5H18a5 5 0 01-1.5 3.5V18h-2v-1.5a8 8 0 01-2 .25H9v1.25H7V16a5 5 0 01-3-4z"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <circle cx="15" cy="10.2" r="0.7" fill="white" />
-    </svg>
-  );
-}
-
-function ReceiptIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M6 3h12v18l-2-1.3L14 21l-2-1.3L10 21l-2-1.3L6 21V3z"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M9 8h6M9 12h6" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function WalletIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M3 7a2 2 0 012-2h11a2 2 0 012 2v1h1a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <circle cx="16.5" cy="13" r="1.2" fill="white" />
-    </svg>
   );
 }

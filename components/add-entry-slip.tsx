@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import { CATEGORIES, Transaction, TransactionKind } from "@/lib/types";
+import { suggestCategory, isGeminiConfigured } from "@/lib/gemini";
 
 interface AddEntrySlipProps {
   onAdd: (t: Omit<Transaction, "id">) => void;
@@ -15,6 +16,49 @@ export function AddEntrySlip({ onAdd, onClose }: AddEntrySlipProps) {
   const [kind, setKind] = useState<TransactionKind>("debit");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [error, setError] = useState<string | null>(null);
+
+  // AI suggestion state
+  const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aiConfigured = isGeminiConfigured();
+
+  // Debounce AI category suggestion on description change
+  useEffect(() => {
+    if (!aiConfigured || !description.trim() || description.trim().length < 3) {
+      setSuggestedCategory(null);
+      return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(async () => {
+      setSuggestLoading(true);
+      try {
+        const suggestion = await suggestCategory(description.trim(), CATEGORIES);
+        if (suggestion && suggestion !== category) {
+          setSuggestedCategory(suggestion);
+        } else {
+          setSuggestedCategory(null);
+        }
+      } catch {
+        setSuggestedCategory(null);
+      } finally {
+        setSuggestLoading(false);
+      }
+    }, 800);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [description, aiConfigured]);
+
+  function acceptSuggestion() {
+    if (suggestedCategory) {
+      setCategory(suggestedCategory);
+      setSuggestedCategory(null);
+    }
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -91,6 +135,26 @@ export function AddEntrySlip({ onAdd, onClose }: AddEntrySlipProps) {
               placeholder="e.g. Farmers market"
               className="mt-1 w-full rounded-2xl border border-[#e6dfcf] bg-white/80 px-3 py-2.5 text-ink placeholder:text-ink-faint focus:border-gold"
             />
+            {/* AI category suggestion */}
+            {suggestLoading && (
+              <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-ink-faint">
+                <span className="inline-block h-3 w-3 rounded-full border-2 border-brand/30 border-t-brand spin-slow" />
+                Suggesting category...
+              </div>
+            )}
+            {suggestedCategory && !suggestLoading && (
+              <button
+                type="button"
+                onClick={acceptSuggestion}
+                className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-brand/10 to-purple-500/10 border border-brand/20 px-2.5 py-1 text-[11px] font-medium text-brand transition-all hover:from-brand/20 hover:to-purple-500/20 hover:shadow-sm scale-in"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+                </svg>
+                AI suggests: {suggestedCategory}
+                <span className="text-brand/60">· tap to use</span>
+              </button>
+            )}
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -148,3 +212,4 @@ export function AddEntrySlip({ onAdd, onClose }: AddEntrySlipProps) {
     </div>
   );
 }
+

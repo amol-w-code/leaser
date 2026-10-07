@@ -52,3 +52,18 @@ export interface UserProfile {
   currency: string;
   profileImage: string;
 }
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+}
+
+export interface AIInsight {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+  type: "tip" | "warning" | "success" | "info";
+}

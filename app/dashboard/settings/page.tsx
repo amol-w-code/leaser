@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { useProfile } from "@/lib/use-profile";
 import { UserProfile } from "@/lib/types";
+import { TwoFactorAuth } from "@/components/two-factor-auth";
 
 const themeOptions = [
   { value: "light", label: "Light" },
@@ -186,6 +187,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <TwoFactorAuth />
     </div>
   );
 }
