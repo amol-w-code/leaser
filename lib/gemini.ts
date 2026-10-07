@@ -95,7 +95,7 @@ export async function chatWithAdvisor(
   if (!ai) throw new Error("Gemini API key not configured");
 
   const model = ai.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-3.8-flash",
     systemInstruction: buildSystemPrompt(ctx),
   });
 
@@ -114,7 +114,7 @@ export async function generateInsights(ctx: FinancialContext): Promise<string> {
   const ai = getGenAI();
   if (!ai) throw new Error("Gemini API key not configured");
 
-  const model = ai.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = ai.getGenerativeModel({ model: "gemini-3.8-flash" });
 
   const prompt = `${buildSystemPrompt(ctx)}
 
@@ -144,7 +144,7 @@ export async function suggestCategory(
   const ai = getGenAI();
   if (!ai || !description.trim()) return null;
 
-  const model = ai.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = ai.getGenerativeModel({ model: "gemini-3.8-flash" });
 
   const prompt = `Given this transaction description: "${description}"
 
