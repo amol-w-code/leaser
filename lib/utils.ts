@@ -1,11 +1,20 @@
-import { loadProfile } from "@/lib/storage";
+// ── Currency cache (synced from Firestore profile) ─────────
+
+let _currency = "INR";
+
+/** Called from DashboardLayout when the Firestore profile loads/changes. */
+export function setCurrency(code: string) {
+  if (code && code !== _currency) _currency = code;
+}
+
+export function getCurrency(): string {
+  return _currency;
+}
 
 export function formatCurrency(amount: number): string {
-  const profile = loadProfile();
-  const currency = profile.currency || "USD";
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency,
+    currency: _currency,
     maximumFractionDigits: 0,
   });
 
@@ -23,9 +32,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 export function getCurrencySymbol(): string {
-  const profile = loadProfile();
-  const currency = profile.currency || "USD";
-  return CURRENCY_SYMBOLS[currency] ?? "$";
+  return CURRENCY_SYMBOLS[_currency] ?? "$";
 }
 
 

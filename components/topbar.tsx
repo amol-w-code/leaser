@@ -1,20 +1,45 @@
 "use client";
 
-export function TopBar({ title, subtitle }: { title: string; subtitle?: string }) {
+import { useProfile } from "@/lib/use-profile";
+import { useAuth } from "@/lib/auth-context";
+
+interface TopBarProps {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+}
+
+export function TopBar({ title, subtitle, action }: TopBarProps) {
+  const { user } = useAuth();
+  const { profile } = useProfile();
+  
+  const avatarUrl = user?.photoURL || profile?.profileImage;
+  const displayName = user?.displayName || profile?.fullName || "User";
+  const initial = displayName.charAt(0).toUpperCase();
+
   return (
-    <div className="flex items-start justify-between mb-8 pb-4 border-b border-border fade-in-up">
-      <div>
-        <h1 className="font-display text-2xl font-semibold text-ink tracking-tight">{title}</h1>
-        {subtitle && <p className="text-ink-soft text-sm mt-1">{subtitle}</p>}
+    <header className="fade-in-up mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex items-center gap-4">
+        {/* Mobile-only avatar */}
+        <div className="md:hidden flex h-11 w-11 items-center justify-center overflow-hidden rounded-[14px] bg-surface ring-2 ring-brand/10">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-lg font-semibold text-brand">{initial}</span>
+          )}
+        </div>
+        <div>
+          <h1 className="font-display text-2xl sm:text-[1.75rem] font-semibold text-ink leading-tight tracking-tight">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="mt-1 text-sm text-ink-soft max-w-[500px] leading-relaxed">
+              {subtitle}
+            </p>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <button className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white text-ink-faint hover:text-ink transition-colors dark-card">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-        </button>
-      </div>
-    </div>
+      {action && <div className="flex-shrink-0">{action}</div>}
+    </header>
   );
 }

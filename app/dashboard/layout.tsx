@@ -7,6 +7,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { useProfile } from "@/lib/use-profile";
 import { useAuth } from "@/lib/auth-context";
 import { SyncIndicator } from "@/components/sync-indicator";
+import { setCurrency } from "@/lib/utils";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -18,6 +19,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.push("/login");
     }
   }, [user, loading, router]);
+
+  // Keep the currency cache in sync with the Firestore profile
+  useEffect(() => {
+    if (profileLoaded && profile.currency) {
+      setCurrency(profile.currency);
+    }
+  }, [profileLoaded, profile.currency]);
 
   useEffect(() => {
     if (!profileLoaded) return;

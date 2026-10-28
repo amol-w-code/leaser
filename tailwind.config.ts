@@ -23,18 +23,19 @@ const config: Config = {
         accent: "var(--accent-blue)",
       },
       fontFamily: {
-        // Switching display font to Inter for a cleaner, modern professional look
-        display: ["var(--font-inter)", "system-ui", "sans-serif"],
-        body: ["var(--font-inter)", "system-ui", "sans-serif"],
-        mono: ["var(--font-plex-mono)", "ui-monospace", "monospace"],
+        // Restoring Fraunces for premium brand identity
+        display: ["var(--font-fraunces)", "serif"],
+        body: ["var(--font-inter)", "sans-serif"],
+        mono: ["var(--font-plex-mono)", "monospace"],
       },
       borderRadius: {
-        card: "12px", // Tighter border radius for professional look
+        card: "24px", // Restoring luxurious border radius
         pill: "999px",
       },
       boxShadow: {
         card: "var(--shadow-card)",
         "card-hover": "var(--shadow-card-hover)",
+        glow: "var(--shadow-glow)",
       },
     },
   },

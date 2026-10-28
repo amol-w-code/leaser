@@ -1,6 +1,11 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import {
+  initializeFirestore,
+  getFirestore,
+  persistentLocalCache,
+  persistentSingleTabManager,
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,11 +18,19 @@ const firebaseConfig = {
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
-// Enable offline persistence (fails silently if already enabled or in SSR)
-if (typeof window !== "undefined") {
-  enableIndexedDbPersistence(db).catch(() => {});
+// Use modern persistent cache API (replaces deprecated enableIndexedDbPersistence)
+let db: ReturnType<typeof getFirestore>;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentSingleTabManager({}),
+    }),
+  });
+} catch {
+  // Firestore already initialized (e.g. HMR), fall back to existing instance
+  db = getFirestore(app);
 }
 
 export { app, auth, db };
+

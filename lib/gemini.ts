@@ -99,13 +99,20 @@ export async function chatWithAdvisor(
     systemInstruction: buildSystemPrompt(ctx),
   });
 
-  const chat = model.startChat({
-    history,
-  });
+  try {
+    const chat = model.startChat({
+      history,
+    });
 
-  const result = await chat.sendMessage(userMessage);
-  const response = result.response;
-  return response.text();
+    const result = await chat.sendMessage(userMessage);
+    const response = result.response;
+    return response.text();
+  } catch (err: any) {
+    if (err.message?.includes("503")) {
+      return "I'm currently experiencing a high volume of requests! Please try asking me again in a moment.";
+    }
+    throw err;
+  }
 }
 
 // ── Generate dashboard insights ──────────────────
@@ -131,8 +138,22 @@ Respond ONLY with a valid JSON array, no markdown fences:
   {"icon": "emoji", "title": "short title", "description": "brief actionable insight", "type": "tip|warning|success|info"}
 ]`;
 
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  try {
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (err: any) {
+    if (err.message?.includes("503")) {
+      return JSON.stringify([
+        {
+          icon: "⏳",
+          title: "AI Busy",
+          description: "Insights are currently unavailable due to high demand. Check back soon!",
+          type: "warning"
+        }
+      ]);
+    }
+    throw err;
+  }
 }
 
 // ── Suggest category for a description ───────────
